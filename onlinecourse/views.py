@@ -8,11 +8,15 @@ from django.urls import reverse
 from django.views import generic
 from django.contrib.auth import login, logout, authenticate
 import logging
+from .models import (
+    Course,
+    Enrollment,
+    Submission,
+    Question
+)
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 # Create your views here.
-
-
 def registration_request(request):
     context = {}
     if request.method == 'GET':
@@ -111,7 +115,37 @@ def enroll(request, course_id):
          # Add each selected choice object to the submission object
          # Redirect to show_exam_result with the submission id
 #def submit(request, course_id):
+@login_required
+def submit(request, course_id):
 
+    course = get_object_or_404(
+        Course,
+        pk=course_id
+    )
+
+    enrollment = Enrollment.objects.get(
+        user=request.user,
+        course=course
+    )
+
+    submission = Submission.objects.create(
+        enrollment=enrollment
+    )
+
+    selected_choices = request.POST.getlist(
+        'choice'
+    )
+
+    submission.choices.set(
+        selected_choices
+    )
+
+    return HttpResponseRedirect(
+        reverse(
+            'onlinecourse:show_exam_result',
+            args=(submission.id,)
+        )
+    )
 
 # An example method to collect the selected choices from the exam form from the request object
 def extract_answers(request):
@@ -131,6 +165,48 @@ def extract_answers(request):
         # For each selected choice, check if it is a correct answer or not
         # Calculate the total score
 #def show_exam_result(request, course_id, submission_id):
+@login_required
+def show_exam_result(
+    request,
+    submission_id
+):
 
+    submission = get_object_or_404(
+        Submission,
+        pk=submission_id
+    )
+
+    selected_choices = submission.choices.all()
+
+    total_grade = 0
+    earned_grade = 0
+
+    for question in Question.objects.all():
+
+        total_grade += question.grade
+
+        selected_ids = []
+
+        for choice in selected_choices:
+            if choice.question.id == question.id:
+                selected_ids.append(choice.id)
+
+        if question.is_get_score(selected_ids):
+            earned_grade += question.grade
+
+    score = int(
+        earned_grade / total_grade * 100
+    )
+
+    context = {
+        'submission': submission,
+        'score': score
+    }
+
+    return render(
+        request,
+        'onlinecourse/exam_result_bootstrap.html',
+        context
+    )
 
 
