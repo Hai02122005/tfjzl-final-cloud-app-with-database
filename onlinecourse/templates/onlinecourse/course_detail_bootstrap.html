@@ -54,3 +54,53 @@
     </div>
 </body>
 </html>
+<h3>Assessment</h3>
+
+<form
+action="{% url 'onlinecourse:submit' course.id %}"
+method="post">
+
+{% csrf_token %}
+
+{% for question in course.question_set.all %}
+
+<div class="card mt-3">
+
+<div class="card-header">
+{{ question.question_text }}
+</div>
+
+<div class="card-body">
+
+{% for choice in question.choice_set.all %}
+
+<div class="form-check">
+
+<input
+class="form-check-input"
+type="checkbox"
+name="choice"
+value="{{ choice.id }}">
+
+<label class="form-check-label">
+{{ choice.choice_text }}
+</label>
+
+</div>
+
+{% endfor %}
+
+</div>
+</div>
+
+{% endfor %}
+
+<button
+class="btn btn-success mt-3"
+type="submit">
+
+Submit
+
+</button>
+
+</form>
